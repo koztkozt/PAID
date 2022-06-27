@@ -1,7 +1,7 @@
 # preprocess
 class DataConfig(object):
     dataset_name = "udacity"
-    data_path = "/home/ubuntu/RAIDS2/data/udacity/"
+    data_path = "data/udacity/"
     data_name = "hsv_gray_diff_ch2"  # hsv_gray_diff_ch4
     img_height = 100
     img_width = 100
@@ -31,29 +31,26 @@ class RAIDSconfig(DataConfig):
 # optiU training
 class optiUConfig(DataConfig):
     batch_size = 32
-    num_epoch = 16
+    num_epoch = 60
     target = 0.3
 
 
 # advGAN training
 class advGANConfig(DataConfig):
     batch_size = 32
-    num_epoch = 16
+    num_epoch = 60
     target = 0.3
 
 
 # attacks
 class attacksconfig(DataConfig):
-    batch_size = 32
-    num_epoch = 16
+    batch_size = 1
     target = 0.3
 
 
 # defences
 class defencesconfig(DataConfig):
-    batch_size = 32
-    num_epoch = 16
-    threshold = 0.8
+    batch_size = 1
     target = 0.3
 
 
