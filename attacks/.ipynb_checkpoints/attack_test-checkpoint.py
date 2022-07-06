@@ -175,7 +175,7 @@ def fgsm_attack_test(model, image, target, device, image_size, plot_fig, epsilon
         )
     else:
         plt = 0
-    return diff, steer, adv_output, plt, np.sum(noise.detach().cpu().numpy()), perturbed_image.detach().cpu().numpy()
+    return diff, steer, adv_output, plt, noise.detach().cpu().numpy(), perturbed_image.detach().cpu().numpy()
 
 
 def optimized_attack_test(model, image, target, device, image_size, plot_fig):
@@ -196,7 +196,7 @@ def optimized_attack_test(model, image, target, device, image_size, plot_fig):
     else:
         plt = 0
     # plt.show()
-    return diff, steer, adv_output, plt, perturbed_image.detach().cpu().numpy()
+    return diff, steer, adv_output, plt, noise.detach().cpu().numpy(), perturbed_image.detach().cpu().numpy()
 
 
 def optimized_uni_test(model, image, device, noise, image_size, plot_fig):
@@ -241,7 +241,7 @@ def advGAN_test(model, image, advGAN_generator, device, image_size, plot_fig):
         )
     else:
         plt = 0
-    return diff, steer, adv_output, plt, perturbed_image.detach().cpu().numpy()
+    return diff, steer, adv_output, plt, noise.detach().cpu().numpy(), perturbed_image.detach().cpu().numpy()
 
 
 def advGAN_uni_test(model, image, device, noise, image_size, plot_fig):

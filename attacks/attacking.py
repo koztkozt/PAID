@@ -90,65 +90,68 @@ def attacks(config):
     num_sample = len(test_dataset)
 
     print("Attacking: RAIDS")
-#     # fgsm attack
-#     fgsm_result = []
-#     fgsm_diff = []
-#     fgsm_ast, diff, y_true, y_pred, y_pred_FGSM = fgsm_ex(
-#         test_data_loader,
-#         stage1_model,
-#         stage2_model,
-#         dataset_name,
-#         "FGSM",
-#         image_nc,
-#         target,
-#         device,
-#         num_sample,
-#         image_size,
-#     )
-#     save_attack_success(dataset_name,"FGSM",fgsm_ast)
-#     result_print("FGSM", dataset_name, fgsm_ast, diff, fgsm_result, fgsm_diff, y_true, y_pred, y_pred_FGSM)
+    # fgsm attack
+    fgsm_result = []
+    fgsm_diff = []
+    fgsm_ast, diff, y_true, y_pred, y_pred_FGSM, fgsm_robustness = fgsm_ex(
+        test_data_loader,
+        stage1_model,
+        stage2_model,
+        dataset_name,
+        "FGSM",
+        image_nc,
+        target,
+        device,
+        num_sample,
+        image_size,
+    )
+    print('robustness', fgsm_robustness)
+    save_attack_success(dataset_name,"FGSM",fgsm_ast)
+    result_print("FGSM", dataset_name, fgsm_ast, diff, fgsm_result, fgsm_diff, y_true, y_pred, y_pred_FGSM)
 
-#     # optimization attack
-#     opt_result = []
-#     opt_diff = []
-#     opt_ast, diff, y_true, y_pred, y_pred_opt = opt_ex(
-#         test_data_loader,
-#         stage1_model,
-#         stage2_model,
-#         dataset_name,
-#         "Opt",
-#         image_nc,
-#         target,
-#         device,
-#         num_sample,
-#         image_size,
-#     )
-#     save_attack_success(dataset_name,"Opt",opt_ast)
-#     result_print("Opt", dataset_name, opt_ast, diff, opt_result, opt_diff, y_true, y_pred, y_pred_opt)
+    # optimization attack
+    opt_result = []
+    opt_diff = []
+    opt_ast, diff, y_true, y_pred, y_pred_opt, opt_robustness = opt_ex(
+        test_data_loader,
+        stage1_model,
+        stage2_model,
+        dataset_name,
+        "Opt",
+        image_nc,
+        target,
+        device,
+        num_sample,
+        image_size,
+    )
+    print('robustness', opt_robustness)
+    save_attack_success(dataset_name,"Opt",opt_ast)
+    result_print("Opt", dataset_name, opt_ast, diff, opt_result, opt_diff, y_true, y_pred, y_pred_opt)
 
-    # # optimized-based universal attack
-    # optu_result = []
-    # optu_diff = []
-    # optu_ast, diff, y_true, y_pred, y_pred_optU = opt_uni_ex(
-    #     test_data_loader,
-    #     stage1_model,
-    #     stage2_model,
-    #     dataset_name,
-    #     "OptU",
-    #     image_nc,
-    #     target,
-    #     device,
-    #     num_sample,
-    #     image_size,
-    # )
-    # save_attack_success(dataset_name,"OptU",optu_ast)
-    # result_print("OptU", dataset_name, optu_ast, diff, optu_result, optu_diff, y_true, y_pred, y_pred_optU)
+    # optimized-based universal attack
+    optu_result = []
+    optu_diff = []
+    optu_ast, diff, y_true, y_pred, y_pred_optU, optu_robustness = opt_uni_ex(
+        test_data_loader,
+        stage1_model,
+        stage2_model,
+        dataset_name,
+        "OptU",
+        image_nc,
+        target,
+        device,
+        num_sample,
+        image_size,
+    )
+    print('robustness', optu_robustness)
+    save_attack_success(dataset_name,"OptU",optu_ast)
+    result_print("OptU", dataset_name, optu_ast, diff, optu_result, optu_diff, y_true, y_pred, y_pred_optU)
 
     # advGAN attack
     advGAN_result = []
     advGAN_diff = []
 
-    advGAN_ast, diff, y_true, y_pred, y_pred_advGAN = advGAN_ex(
+    advGAN_ast, diff, y_true, y_pred, y_pred_advGAN, advGAN_robustness = advGAN_ex(
         test_data_loader,
         stage1_model,
         stage2_model,
@@ -160,6 +163,7 @@ def attacks(config):
         num_sample,
         image_size,
     )
+    print('robustness', advGAN_robustness)
     save_attack_success(dataset_name,"advGAN",advGAN_ast)
     result_print("advGAN", dataset_name, advGAN_ast, diff, advGAN_result, advGAN_diff, y_true, y_pred, y_pred_advGAN)
 
@@ -167,7 +171,7 @@ def attacks(config):
     advGANU_result = []
     advGANU_diff = []
 
-    advGANU_ast, diff, y_true, y_pred, y_pred_advGANU = advGANU_ex(
+    advGANU_ast, diff, y_true, y_pred, y_pred_advGANU, advGANU_robustness = advGANU_ex(
         test_data_loader,
         stage1_model,
         stage2_model,
@@ -179,6 +183,7 @@ def attacks(config):
         num_sample,
         image_size,
     )
+    print('robustness', advGANU_robustness)
     save_attack_success(dataset_name,"advGANU",advGANU_ast)
     result_print(
         "advGANU", dataset_name, advGANU_ast, diff, advGANU_result, advGANU_diff, y_true, y_pred, y_pred_advGANU
@@ -189,12 +194,17 @@ def attacks(config):
     success_rate.loc[0] = [fgsm_ast, opt_ast, optu_ast, advGAN_ast, advGANU_ast]
     success_rate.to_csv("./results/" + dataset_name + "_attack_success_rate_" + sys.argv[2] + ".csv")
 
-
+    # save robustness
+    robustness = pd.DataFrame(columns=["FGSM", "Optimization", "OptimizationU", "AdvGAN", "AdvGANU"])
+    robustness.loc[0] = [fgsm_robustness, opt_robustness, optu_robustness, advGAN_robustness, advGANU_robustness]
+    robustness.to_csv("./results/" + dataset_name + "_robustness_" + sys.argv[2] + ".csv")
+    
 def fgsm_ex(test_dataset, stage1, stage2, dataset_name, attack_name, image_nc, target, device, num_sample, image_size):
     print("testing", attack_name)
     fgsm_success = 0
-    total_noise = 0
     diff_total = []
+    total_noise = []
+    x = []
     # print(len(test_dataset))
     y_pred, y_true, y_pred_advGAN = [], [], []
 
@@ -205,7 +215,7 @@ def fgsm_ex(test_dataset, stage1, stage2, dataset_name, attack_name, image_nc, t
             inter += 0.1
         if i % 64 == 0:
             plot_fig = True
-        diff, pred_angle, pred_angle_attack, plt_, norm_noise, _ = fgsm_attack_test(
+        diff, pred_angle, pred_angle_attack, plt_, noise, _ = fgsm_attack_test(
             stage1, sample[0], target, device, image_size, plot_fig
         )
         diff_total.extend(diff)
@@ -218,20 +228,26 @@ def fgsm_ex(test_dataset, stage1, stage2, dataset_name, attack_name, image_nc, t
                 bbox_inches="tight",
             )
         plt_.close()
-
-        total_noise += norm_noise
-        fgsm_success += abs(diff) > abs(target)
-
+        
+        if abs(diff) > abs(target):
+            fgsm_success += 1
+            total_noise.append(noise)
+            x.append(sample[0].detach().cpu().numpy())
+                 
         # pass results to stage 2
         stage2_pred(device, stage2, pred_angle, pred_angle_attack, sample, y_true, y_pred, y_pred_advGAN)
 
-    return (fgsm_success / num_sample), diff_total, y_true, y_pred, y_pred_advGAN
+    robustness = empirical_robustness(np.array(x),np.array(total_noise))
+    
+    return (fgsm_success / num_sample), diff_total, y_true, y_pred, y_pred_advGAN, robustness
 
 
 def opt_ex(test_dataset, stage1, stage2, dataset_name, attack_name, image_nc, target, device, num_sample, image_size):
     print("testing", attack_name)
     opt_success = 0
     diff_total = []
+    total_noise = []
+    x = []    
     y_pred, y_true, y_pred_advGAN = [], [], []
 
     inter = 0.0
@@ -241,7 +257,7 @@ def opt_ex(test_dataset, stage1, stage2, dataset_name, attack_name, image_nc, ta
             inter += 0.1
         if i % 64 == 0:
             plot_fig = True
-        diff, pred_angle, pred_angle_attack, plt_, _ = optimized_attack_test(
+        diff, pred_angle, pred_angle_attack, plt_, noise, _ = optimized_attack_test(
             stage1, sample[0], target, device, image_size, plot_fig
         )
         diff_total.extend(diff)
@@ -255,11 +271,17 @@ def opt_ex(test_dataset, stage1, stage2, dataset_name, attack_name, image_nc, ta
             )
         plt_.close()
 
-        opt_success += abs(diff) > abs(target)
+        if abs(diff) > abs(target):
+            opt_success += 1
+            total_noise.append(noise)
+            x.append(sample[0].detach().cpu().numpy())
+            
         # pass results to stage 2
         stage2_pred(device, stage2, pred_angle, pred_angle_attack, sample, y_true, y_pred, y_pred_advGAN)
-
-    return (opt_success / num_sample), diff_total, y_true, y_pred, y_pred_advGAN
+    
+    robustness = empirical_robustness(np.array(x),np.array(total_noise))
+    
+    return (opt_success / num_sample), diff_total, y_true, y_pred, y_pred_advGAN, robustness
 
 
 def opt_uni_ex(
@@ -268,6 +290,8 @@ def opt_uni_ex(
     print("testing", attack_name)
     opt_uni_success = 0
     diff_total = []
+    total_noise = []
+    x = []
     y_pred, y_true, y_pred_advGAN = [], [], []
 
     inter = 0.0
@@ -297,11 +321,17 @@ def opt_uni_ex(
             )
         plt_.close()
 
-        opt_uni_success += abs(diff) > abs(target)
+        if abs(diff) > abs(target):
+            opt_uni_success += 1
+            total_noise.append(noise.detach().cpu().numpy())
+            x.append(sample[0].detach().cpu().numpy())
+            
         # pass results to stage 2
         stage2_pred(device, stage2, pred_angle, pred_angle_attack, sample, y_true, y_pred, y_pred_advGAN)
-
-    return (opt_uni_success / num_sample), diff_total, y_true, y_pred, y_pred_advGAN
+    
+    robustness = empirical_robustness(np.array(x),np.array(total_noise))
+    
+    return (opt_uni_success / num_sample), diff_total, y_true, y_pred, y_pred_advGAN, robustness
 
 
 def advGAN_ex(
@@ -309,6 +339,8 @@ def advGAN_ex(
 ):
     print("testing", attack_name)
     advGAN_success = 0
+    total_noise = []
+    x = []
     diff_total = []
     advGAN_generator = Generator(image_nc, image_nc, attack_name).to(device)
     if torch.cuda.is_available():
@@ -327,7 +359,7 @@ def advGAN_ex(
 
         if i % 64 == 0:
             plot_fig = True
-        diff, pred_angle, pred_angle_advGAN, plt_, _ = advGAN_test(
+        diff, pred_angle, pred_angle_advGAN, plt_, noise, _ = advGAN_test(
             stage1, sample[0], advGAN_generator, device, image_size, plot_fig
         )
         diff_total.extend(diff)
@@ -340,10 +372,17 @@ def advGAN_ex(
                 bbox_inches="tight",
             )
         plt_.close()
-        advGAN_success += abs(diff) > abs(target)
+        if abs(diff) > abs(target):
+            advGAN_success += 1
+            total_noise.append(noise)
+            x.append(sample[0].detach().cpu().numpy())
+            
         # pass results to stage 2
         stage2_pred(device, stage2, pred_angle, pred_angle_advGAN, sample, y_true, y_pred, y_pred_advGAN)
-    return (advGAN_success / num_sample), diff_total, y_true, y_pred, y_pred_advGAN
+    
+    robustness = empirical_robustness(np.array(x),np.array(total_noise))
+    
+    return (advGAN_success / num_sample), diff_total, y_true, y_pred, y_pred_advGAN, robustness
 
 
 def advGANU_ex(
@@ -351,6 +390,8 @@ def advGANU_ex(
 ):
     print("testing", attack_name)
     advGAN_uni_success = 0
+    total_noise = []
+    x = []
     diff_total = []
     advGAN_generator = Generator(image_nc, image_nc, attack_name).to(device)
     if torch.cuda.is_available():
@@ -388,12 +429,17 @@ def advGANU_ex(
                 bbox_inches="tight",
             )
         plt_.close()
-        advGAN_uni_success += abs(diff) > abs(target)
+        if abs(diff) > abs(target):
+            advGAN_uni_success += 1
+            total_noise.append(noise.detach().cpu().numpy())
+            x.append(sample[0].detach().cpu().numpy())
 
         # pass results to stage 2
         stage2_pred(device, stage2, pred_angle, pred_angle_advGAN_uni, sample, y_true, y_pred, y_pred_advGAN_uni)
-
-    return (advGAN_uni_success / num_sample), diff_total, y_true, y_pred, y_pred_advGAN_uni
+    
+    robustness = empirical_robustness(np.array(x),np.array(total_noise))
+    
+    return (advGAN_uni_success / num_sample), diff_total, y_true, y_pred, y_pred_advGAN_uni, robustness
 
 
 def stage2_pred(device, stage2, pred_angle, pred_angle_attack, sample, y_true, y_pred, y_pred_attack):
@@ -457,10 +503,17 @@ def result_print(attack_name, dataset_name, ast, diff, attack_result, attack_dif
     df_all.to_csv("./results/" + dataset_name + "_" + attack_name + "_" + sys.argv[2] + ".csv")
 
 def save_attack_success(dataset_name,attack_name, ast):
-    print(ast)
+    # print("attack_success_rate", ast)
     with open("results/"+dataset_name+"_"+attack_name + "_attack_success.txt", "w") as f:
-        f.write(str(ast[0][0]))
-        
+        f.write(str(ast))
+
+def empirical_robustness(x, noise):
+    norm_type = 2
+    perts_norm = np.linalg.norm(noise.reshape(x.shape[0], -1), ord=norm_type, axis=1)
+    robustness = np.mean(perts_norm / np.linalg.norm(x.reshape(x.shape[0], -1), ord=norm_type, axis=1))
+
+    return robustness
+
     
 if __name__ == "__main__":
     configfile = importlib.import_module(sys.argv[1])
