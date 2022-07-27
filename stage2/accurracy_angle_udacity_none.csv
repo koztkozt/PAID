@@ -1,0 +1,2 @@
+,TN,FP,FN,TP,Accuracy,Precision,Recall,Total_Actual_Neg,Total_Actual_Pos,Total_Pred_Neg,Total_Pred_Pos,TP_Rate,FP_Rate,TN_Rate,FN_Rate
+1,4773.0,299.0,0.0,0.0,0.9410488958990536,0.0,0.0,5072.0,0.0,4773.0,299.0,,0.058951104100946373,0.9410488958990536,

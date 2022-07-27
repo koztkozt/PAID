@@ -4,3 +4,7 @@ data/udacity/Y_*
 delete/*
 */delete/*
 report/*
+__pycache__
+*/.ipynb_checkpoints/*
+*/*/.ipynb_checkpoints/*
+*/__pycache__
