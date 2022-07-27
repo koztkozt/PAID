@@ -12,35 +12,36 @@ class DataConfig(object):
 class TrainConfig1(DataConfig):
     model_path = "comma_large_dropout"
     batch_size = 32
-    num_epoch = 32
+    num_epoch = 16
     X_train_mean_path = "X_train_gray_diff2_mean.npy"
 
 
 # stage 2 training
 class TrainConfig2(DataConfig):
     batch_size = 32
-    num_epoch = 16
+    num_epoch = 5
 
-
-# RAIDS both stage 1 and 2
-class RAIDSconfig(DataConfig):
+# stage 1a training
+class TrainConfig1a(DataConfig):
     batch_size = 32
-    num_epoch = 16
-
-
+    num_epoch = 5  
+    
+# stage 2a training
+class TrainConfig2a(DataConfig):
+    batch_size = 32
+    num_epoch = 5  
+    
 # optiU training
 class optiUConfig(DataConfig):
     batch_size = 32
     num_epoch = 60
     target = 0.3
 
-
 # advGAN training
 class advGANConfig(DataConfig):
     batch_size = 32
     num_epoch = 60
     target = 0.3
-
 
 # attacks
 class attacksconfig(DataConfig):
@@ -52,8 +53,13 @@ class attacksconfig(DataConfig):
 class defencesconfig(DataConfig):
     batch_size = 1
     target = 0.3
+    threshold = 0.15
 
-
+# combined
+class combined(DataConfig):
+    batch_size = 1
+    target = 0.3
+    
 # class TestConfig(TrainConfig2):
 #     batch_size = 32
 #     num_epoch = 15

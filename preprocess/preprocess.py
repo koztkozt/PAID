@@ -6,6 +6,9 @@ from matplotlib.colors import rgb_to_hsv
 import os, sys, importlib
 
 
+# https://github.com/udacity/self-driving-car/blob/master/steering-models/community-models/rambo/preprocess_train_data.py
+# The raw images are of size 640 x 480. In our final model, we resized the images to 256 x 192, converted from RGB color format to grayscale, computed lag 1 differences between frames and used 2 consecutive differenced images. For example, at time t we used [x_{t} - x_{t-1}, x_{t-1} - x_{t-2}] as input where x corresponds to the grayscale image. No future frames were used to predict the current steering angle.
+
 def make_hsv_grayscale_diff_data(path, num_channels=2):
     df = pd.read_csv(path)
     # print("df: ", df)
@@ -13,8 +16,10 @@ def make_hsv_grayscale_diff_data(path, num_channels=2):
     # print("num_rows: ", num_rows)
     # Creating the X array filled with zeros to store results later
     X = np.zeros((num_rows - num_channels, num_channels, row, col), dtype=np.float32)
+    # X = np.zeros((num_rows - 21, num_channels, row, col), dtype=np.float32)
 
     for i in range(num_channels, num_rows):
+    # for i in range(21, num_rows):
         if i % 1000 == 0:
             print("Processed " + str(i) + " images...")
         for j in range(num_channels):
@@ -43,13 +48,15 @@ def make_hsv_grayscale_diff_data(path, num_channels=2):
 
             # save all images into numpy
             X[i - num_channels, j, :, :] = img
+            # X[i - 21, j, :, :] = img
             # print("num_channels: ", num_channels)
             # print("np.array(df[""].iloc[num_channels:]): ", df["angle"])
 
     # save all angles in radian as Y
     # Y = np.array(df["angle_convert"].iloc[num_channels:])
-    Y = df.iloc[num_channels:]
-    return X, Y
+    # Y = df.iloc[num_channels:]
+    # Y = df.iloc[21:]
+    return X
 
 
 if __name__ == "__main__":
@@ -59,13 +66,20 @@ if __name__ == "__main__":
     data_path = config.data_path
     row, col = config.img_height, config.img_width
     dataset_name = config.dataset_name
-
-    print("Pre-processing data...")
-    # 1. need to prepare the csv file first from original dataset
-    # 2. need to put the picture and CSV files in the same folder
-    # see https://github.com/cd-wang/RAIDS/issues/2
-    X_train, Y_train = make_hsv_grayscale_diff_data("{}data.csv".format(data_path), num_channels=2)
-
-    np.save("{}X_train".format(data_path), X_train)
-    np.save("{}X_train_mean".format(data_path), X_train.mean())
-    Y_train.to_csv(data_path + "Y_train.csv", index=False)
+    num_channels= config.num_channels
+    
+    if sys.argv[2] == "images": 
+        print("Pre-processing images...")
+        # 1. need to prepare the csv file first from original dataset
+        # 2. need to put the picture and CSV files in the same folder
+        # see https://github.com/cd-wang/RAIDS/issues/2
+        X_all = make_hsv_grayscale_diff_data("{}data.csv".format(data_path), num_channels)
+        np.save("{}X_all".format(data_path), X_all)
+        np.save("{}X_all_mean".format(data_path), X_all.mean())
+        print("Pre-processing data done")
+        
+    print("Pre-processing data...")   
+    df = pd.read_csv("{}data.csv".format(data_path))
+    Y_all = df.iloc[num_channels:]
+    Y_all.to_csv(data_path + "Y_all.csv", index=False)
+    print("Pre-processing data done")

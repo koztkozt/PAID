@@ -17,7 +17,7 @@ from torchvision import transforms, utils
 from torchinfo import summary
 from torch.utils.data import DataLoader
 import cv2
-from model import stage1, weight_init
+from model import stage1
 from data import stage1_data
 
 matplotlib.use("Agg")
@@ -37,21 +37,17 @@ if __name__ == "__main__":
     num_channels = config.num_channels
 
     print("Loading training data...")
-    X = np.load(dirparent + "/" + data_path + "X_train.npy")
-    Y = pd.read_csv(dirparent + "/" + data_path + "Y_train.csv")
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=56)
-
-    # print("Computing training set mean...")
-    # X_train_mean = np.mean(X_train, axis=0, keepdims=True)
-    # print("Saving training set mean...")
-    # np.save(config.X_train_mean_path, X_train_mean)
+    X_train = np.load(dirparent + "/" + data_path + "X_train.npy")
+    Y_train = pd.read_csv(dirparent + "/" + data_path + "Y_train_attack_none.csv")
+    X_valid = np.load(dirparent + "/" + data_path + "X_valid.npy")
+    Y_valid = pd.read_csv(dirparent + "/" + data_path + "Y_valid_attack_none.csv")
 
     print("Creating model...")
     train_dataset = stage1_data(X_train, Y_train)
-    train_generator = DataLoader(train_dataset, batch_size=batch_size, num_workers=8)
+    train_generator = DataLoader(train_dataset, batch_size=batch_size, num_workers=4)
     train_steps_per_epoch = int(len(train_dataset) / batch_size)
-    test_dataset = stage1_data(X_test, Y_test)
-    test_generator = DataLoader(test_dataset, batch_size=batch_size, num_workers=8)
+    test_dataset = stage1_data(X_valid, Y_valid)
+    test_generator = DataLoader(test_dataset, batch_size=batch_size, num_workers=4)
     test_steps_per_epoch = int(len(test_dataset) / batch_size)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -61,7 +57,7 @@ if __name__ == "__main__":
     criterion = nn.MSELoss()
     optimizer = optim.Adam(net.parameters(), lr=0.001)
 
-    best_vloss = 1000000
+    min_valid_loss = 1000000
     for epoch in range(num_epoch):
         net.train(True)
         running_loss = 0
@@ -70,8 +66,10 @@ if __name__ == "__main__":
             if i_batch / len(train_generator) > inter:
                 print(f"epoch: {epoch+1} completed: {(inter):.0%}")
                 inter += 0.1
-
-            batch_x, batch_y = sample
+            if sys.argv[2] == "angle":
+                batch_x, batch_y = sample[0], sample[1]
+            elif sys.argv[2] == "speed":    
+                batch_x, batch_y = sample[0], sample[2]
             batch_x = batch_x.type(torch.FloatTensor)
             batch_y = batch_y.type(torch.FloatTensor)
             batch_x = batch_x.to(device)
@@ -85,15 +83,19 @@ if __name__ == "__main__":
 
             running_loss += loss.item()
         avg_loss = running_loss / train_steps_per_epoch
-        print(f"Epoch {epoch} RMSE loss: {(avg_loss):4f}")
+        # print(f"Epoch {epoch} RMSE loss: {(avg_loss):4f}")
 
-        print("########################### TESTING ##########################")
+        print("########################### VALIDATION ##########################")
         net.train(False)
         running_vloss = 0.0
         yhat = []
         test_y = []
         for i, sample in enumerate(test_generator):
-            batch_x, batch_y = sample
+            if sys.argv[2] == "angle":
+                batch_x, batch_y = sample[0], sample[1]
+            elif sys.argv[2] == "speed":    
+                batch_x, batch_y = sample[0], sample[2]
+                
             batch_x = batch_x.type(torch.FloatTensor)
             batch_y = batch_y.type(torch.FloatTensor)
             batch_x = batch_x.to(device)
@@ -107,19 +109,20 @@ if __name__ == "__main__":
             test_y.append(batch_y.tolist())
 
         avg_vloss = running_vloss / test_steps_per_epoch
-        print("LOSS train {} valid {}".format(avg_loss, avg_vloss))
-        if avg_vloss < best_vloss:
-            best_vloss = avg_vloss
-            torch.save(net.state_dict(), "stage1_" + dataset_name + ".pt")
+        print(f'Epoch {epoch+1} \t\t Training Loss: {avg_loss} \t\t Validation Loss: {avg_vloss}')   
+        
+        if avg_vloss < min_valid_loss:
+            min_valid_loss = avg_vloss
+            torch.save(net.state_dict(), "stage1_" + sys.argv[2] +"_"+ dataset_name + ".pt")
 
-            yhat = np.concatenate(yhat).ravel()
-            test_y = np.concatenate(test_y).ravel()
-            rmse = np.sqrt(np.mean((yhat - test_y) ** 2)) / (max(test_y) - min(test_y))
-            plt.figure(figsize=(32, 8))
-            plt.plot(test_y, "r.-", label="target")
-            plt.plot(yhat, "b^-", label="predict")
-            plt.legend(loc="best")
-            plt.title("RMSE: %.2f" % rmse)
-            plt.show()
-            model_fullname = "%s_%d.png" % (dataset_name, int(time.time()))
-            plt.savefig(model_fullname)
+            # yhat = np.concatenate(yhat).ravel()
+            # test_y = np.concatenate(test_y).ravel()
+            # rmse = np.sqrt(np.mean((yhat - test_y) ** 2)) / (max(test_y) - min(test_y))
+            # plt.figure(figsize=(32, 8))
+            # plt.plot(test_y, "r.-", label="target")
+            # plt.plot(yhat, "b^-", label="predict")
+            # plt.legend(loc="best")
+            # plt.title("RMSE: %.2f" % rmse)
+            # plt.show()
+            # model_fullname = "%s_%s_%d.png" % (dataset_name, sys.argv[2], int(time.time()))
+            # plt.savefig(model_fullname)

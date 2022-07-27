@@ -131,10 +131,10 @@ class AdvGAN_Uni_Attack:
             loss_perturb_sum = 0
             loss_adv_sum = 0
 
-            inter = 0.1
+            inter = 0.0
             for _, data in enumerate(train_dataloader, start=0):
                 if _ / len(train_dataloader) > inter:
-                    print(f"epoch: {epoch} completed: {(inter):.0%} %")
+                    print(f"epoch: {epoch} completed: {(inter):.0%}")
                     inter += 0.1
 
                 images = data[0]

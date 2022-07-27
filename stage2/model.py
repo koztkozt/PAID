@@ -17,9 +17,3 @@ class stage2(nn.Module):
         out = self.fc2(out)
         # out = F.log_softmax(out, dim=-1)
         return out
-
-
-def weight_init(m):
-    if isinstance(m, nn.Linear):
-        torch.nn.init.xavier_uniform(m.weight)
-        m.bias.data.fill_(0.01)

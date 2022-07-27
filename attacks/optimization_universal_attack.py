@@ -46,7 +46,7 @@ def universal_attack(dataset, model, device, target, delta=0.3, max_iters=np.inf
         # np.random.shuffle(dataset)
         print("Starting pass number: ", itr)
 
-        inter = 0.1
+        inter = 0.0
         for i, sample in enumerate(dataset):
             if i / len(dataset) > inter:
                 inter += 0.1
@@ -113,12 +113,11 @@ if __name__ == "__main__":
     data_path = config.data_path
     target = config.target
     batch_size = config.batch_size
-    target_model_path = os.path.join(dirparent, "stage1/stage1_" + dataset_name + ".pt")
+    target_model_path = os.path.join(dirparent, "stage1/stage1_" + sys.argv[3] + "_" + dataset_name + ".pt")
 
     print("Loading training data...")
-    X = np.load(dirparent + "/" + data_path + "X_train.npy")
-    Y = pd.read_csv(dirparent + "/" + data_path + "Y_train.csv")
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=56)
+    X_train = np.load(dirparent + "/" + data_path + "X_train.npy")
+    Y_train = pd.read_csv(dirparent + "/" + data_path + "Y_train_attack_none.csv")
     train_dataset = stage1_data(X_train, Y_train)
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=True)
     print("Length of dataloader :", len(train_dataloader))

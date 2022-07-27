@@ -128,10 +128,10 @@ class AdvGAN_Attack:
             loss_perturb_sum = 0
             loss_adv_sum = 0
 
-            inter = 0.1
+            inter = 0.0
             for _, data in enumerate(train_dataloader, start=0):
                 if _ / len(train_dataloader) > inter:
-                    print(f"epoch: {epoch} completed: {(inter):.0%} %")
+                    print(f"epoch: {epoch} completed: {(inter):.0%}")
                     inter += 0.1
 
                 images = data[0]
@@ -157,10 +157,10 @@ class AdvGAN_Attack:
                  (epoch, loss_D_sum/num_batch, loss_G_fake_sum/num_batch,
                   loss_perturb_sum/num_batch, loss_adv_sum/num_batch))
 
-            # save generator
-            if epoch % 60 == 0:
-                netG_file_name = models_path + self.model_name + "_netG_epoch_" + str(epoch) + ".pth"
-                torch.save(self.netG.state_dict(), netG_file_name)
+            # # save generator
+            # if epoch % 60 == 0:
+            #     netG_file_name = models_path + self.model_name + "_netG_epoch_" + str(epoch) + ".pth"
+            #     torch.save(self.netG.state_dict(), netG_file_name)
 
 
 if __name__ == "__main__":

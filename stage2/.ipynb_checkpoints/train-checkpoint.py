@@ -20,7 +20,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, r
 
 from train import *
 from stage1.model import stage1
-from model import stage2, weight_init
+from model import stage2
 from data import stage2_data
 
 if __name__ == "__main__":
@@ -34,18 +34,26 @@ if __name__ == "__main__":
     batch_size = config.batch_size
     data_path = config.data_path
     dataset_name = config.dataset_name
-    target_model_path = os.path.join(dirname, "stage1/stage1_" + dataset_name + ".pt")
+    target_model_path = os.path.join(dirname, "stage1/stage1_" + sys.argv[3] + "_" + dataset_name + ".pt")
 
     print("Loading training data...")
-    X = np.load(dirparent + "/" + data_path + "X_train.npy")
-    Y = pd.read_csv(dirparent + "/" + data_path + "Y_train_attack_" + sys.argv[2] + ".csv")
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=56)
+    if sys.argv[2] == "evade":
+        X = np.load(dirparent + "/" + data_path +"X_all.npy")
+        X = X[70:-70]       
+        Y = pd.read_csv(dirparent + "/" + data_path + "Y_all_attack_" + sys.argv[2] + ".csv")
+        X_train, X_rem, Y_train, Y_rem = train_test_split(X,Y, test_size=0.3, random_state=6)
+        X_valid, X_test, Y_valid, Y_test = train_test_split(X_rem,Y_rem, test_size=0.5, random_state=6)
+    else:
+        X_train = np.load(dirparent + "/" + data_path + "X_train.npy")
+        Y_train = pd.read_csv(dirparent + "/" + data_path + "Y_train_attack_" + sys.argv[2] + ".csv")
+        X_valid = np.load(dirparent + "/" + data_path + "X_valid.npy")
+        Y_valid = pd.read_csv(dirparent + "/" + data_path + "Y_valid_attack_" + sys.argv[2] + ".csv")
 
     print("Creating model...")
     train_dataset = stage2_data(X_train, Y_train)
     train_generator = DataLoader(train_dataset, batch_size=batch_size, num_workers=4)
     train_steps_per_epoch = int(len(train_dataset) / batch_size)
-    test_dataset = stage2_data(X_test, Y_test)
+    test_dataset = stage2_data(X_valid, Y_valid)
     test_generator = DataLoader(test_dataset, batch_size=batch_size, num_workers=4)
     test_steps_per_epoch = int(len(test_dataset) / batch_size)
 
@@ -62,7 +70,7 @@ if __name__ == "__main__":
     criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(net.parameters(), lr=0.01)
 
-    best_vloss = 1000000
+    min_valid_loss = 1000000
 
     print("Length of dataloader :", len(train_generator))
     df_all = pd.DataFrame(columns=["TN", "FP", "FN", "TP", "Accuracy", "Precision", "Recall"])
@@ -72,7 +80,7 @@ if __name__ == "__main__":
         inter = 0.0
         for i_batch, sample in enumerate(train_generator):  # for each training i_batch
             if i_batch / len(train_generator) > inter:
-                print(f"epoch: {epoch} completed: {(inter):.0%}")
+                print(f"epoch: {epoch+1} completed: {(inter):.0%}")
                 inter += 0.10
 
             batch_x, angle, target = sample
@@ -101,9 +109,9 @@ if __name__ == "__main__":
             # print(target)
             # break
         avg_loss = running_loss / train_steps_per_epoch
-        print(f"Epoch {epoch} loss: {(avg_loss):4f}")
+        # print(f"Epoch {epoch+1} loss: {(avg_loss):4f}")
 
-        print("########################### TESTING ##########################")
+        print("########################### VALIDATION ##########################")
         net.train(False)
         running_vloss = 0.0
         y_pred = []
@@ -133,10 +141,10 @@ if __name__ == "__main__":
             y_true.extend(target.detach().cpu().data)
 
         avg_vloss = running_vloss / test_steps_per_epoch
-        print("LOSS train {} valid {}".format(avg_loss, avg_vloss))
-        if avg_vloss < best_vloss:
-            best_vloss = avg_vloss
-            torch.save(net.state_dict(), "stage2_" + dataset_name + "_" + sys.argv[2] + ".pt")
+        print(f'Epoch {epoch+1} \t\t Training Loss: {avg_loss} \t\t Validation Loss: {avg_vloss}')   
+        if avg_vloss < min_valid_loss:
+            min_valid_loss = avg_vloss
+            torch.save(net.state_dict(), "stage2_" + sys.argv[3] + "_" + dataset_name + "_" + sys.argv[2] + ".pt")
 
             # Build confusion matrix
             cf_matrix = confusion_matrix(y_true, y_pred).flatten()
@@ -148,7 +156,6 @@ if __name__ == "__main__":
 
             # Initialize a blank dataframe and keep adding
             df = pd.DataFrame(columns=["TN", "FP", "FN", "TP", "Accuracy", "Precision", "Recall"])
-            print(type(cf_matrix))
             df.loc[epoch] = cf_matrix.tolist() + [accuracy, precision, recall]
             df["Total_Actual_Neg"] = df["TN"] + df["FP"]
             df["Total_Actual_Pos"] = df["FN"] + df["TP"]
@@ -161,5 +168,4 @@ if __name__ == "__main__":
             df_all = pd.concat([df_all, df])
             print(df_all.tail())
 
-    torch.save(net.state_dict(), "stage2_" + dataset_name + "_" + sys.argv[2] + ".pt")
-    df_all.to_csv("accurracy_" + dataset_name + "_" + sys.argv[2] + ".csv")
+    df_all.to_csv("accurracy_" +  sys.argv[3] + "_" + dataset_name + "_" + sys.argv[2] + ".csv")

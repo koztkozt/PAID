@@ -1,1 +1,6 @@
-data/*
+data/udacity/image*/
+data/udacity/X_*
+data/udacity/Y_*
+delete/*
+*/delete/*
+report/*

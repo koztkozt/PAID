@@ -57,20 +57,19 @@ if __name__ == "__main__":
     dataset_name = config.dataset_name
     data_path = config.data_path
     target = config.target
-    target_model_path = os.path.join(dirparent, "stage1/stage1_" + dataset_name + ".pt")
+    target_model_path = os.path.join(dirparent, "stage1/stage1_" + sys.argv[3] + "_" + dataset_name + ".pt")
 
     print("Loading training data...")
-    X = np.load(dirparent + "/" + data_path + "X_train.npy")
-    Y = pd.read_csv(dirparent + "/" + data_path + "Y_train.csv")
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=56)
+    X_train = np.load(dirparent + "/" + data_path + "X_train.npy")
+    Y_train = pd.read_csv(dirparent + "/" + data_path + "Y_train_attack_none.csv")
     train_dataset = stage1_data(X_train, Y_train)
 
     print("Start advGAN training")
-    advGAN = advGAN_Attack(dataset_name, target_model_path, target + 0.2, train_dataset, config)
+    advGAN = advGAN_Attack(dataset_name, target_model_path, target, train_dataset, config)
     torch.save(advGAN.netG.state_dict(), "./models/" + dataset_name + "_" + attack_name + "_netG_epoch_60.pth")
 
     print("Start advGAN_uni training")
-    advGAN_uni = advGAN_Attack(dataset_name, target_model_path, target + 0.2, train_dataset, config, universal=True)
+    advGAN_uni = advGAN_Attack(dataset_name, target_model_path, target, train_dataset, config, universal=True)
     advGAN_uni.save_noise_seed("./models/" + dataset_name + "_" + attack_name + "U_noise_seed.npy")
     torch.save(advGAN_uni.netG.state_dict(), "./models/" + dataset_name + "_" + attack_name + "U_netG_epoch_60.pth")
 

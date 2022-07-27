@@ -106,13 +106,17 @@ def attack_detection(
         squeeze_image_blur = squeeze_image_blur.to(device)
         pred_blur = stage1(squeeze_image_blur)
         
-        plot_fig = False
+        if i % 64 == 0:
+            plot_fig = True
+        else:
+            plot_fig = False
+            
         if attack_name == "fgsm":
             diff, pred, pred_adv, plt_, _, perturbed_image = fgsm_attack_test(
                 stage1, sample[0], target, device, image_size, plot_fig
             )
         elif attack_name == "opt":
-            diff, pred, pred_adv, plt_, perturbed_image = optimized_attack_test(
+            diff, pred, pred_adv, plt_, _, perturbed_image = optimized_attack_test(
                 stage1, sample[0], target, device, image_size, plot_fig
             )
         elif attack_name == "OptU":
@@ -124,19 +128,21 @@ def attack_detection(
             )
         elif attack_name == "advGAN":
             advGAN_generator = Generator(image_nc, image_nc, attack_name).to(device)
-            advGAN_generator.load_state_dict(
-                torch.load(dirparent + "/attacks/models/" + dataset_name + "_" + attack_name + "_netG_epoch_60.pth")
-            )
+            if torch.cuda.is_available():
+                advGAN_generator.load_state_dict(torch.load(dirparent +"/attacks/models/" + dataset_name + "_" + attack_name + "_netG_epoch_60.pth"))
+            else:
+                advGAN_generator.load_state_dict(torch.load(dirparent +"/attacks/models/" + dataset_name + "_" + attack_name + "_netG_epoch_60.pth",map_location=torch.device('cpu')))
             advGAN_generator.eval()
             # print(steer, adv_output)
-            diff, pred, pred_adv, plt_, perturbed_image = advGAN_test(
+            diff, pred, pred_adv, plt_,  _, perturbed_image = advGAN_test(
                 stage1, sample[0], advGAN_generator, device, image_size, plot_fig
             )
         elif attack_name == "advGANU":
             advGANU_generator = Generator(image_nc, image_nc, attack_name).to(device)
-            advGANU_generator.load_state_dict(
-                torch.load(dirparent + "/attacks/models/" + dataset_name + "_" + attack_name + "_netG_epoch_60.pth")
-            )
+            if torch.cuda.is_available():
+                advGANU_generator.load_state_dict(torch.load(dirparent +"/attacks/models/" + dataset_name + "_" + attack_name + "_netG_epoch_60.pth"))
+            else:
+                advGANU_generator.load_state_dict(torch.load(dirparent +"/attacks/models/" + dataset_name + "_" + attack_name + "_netG_epoch_60.pth",map_location=torch.device('cpu')))
             advGANU_generator.eval()
             noise_seed = np.load(dirparent + "/attacks/models/" + dataset_name + "_" + attack_name + "_noise_seed.npy")
             noise_seed = np.tile(noise_seed, (batch_size, 1, 1, 1))
@@ -165,7 +171,7 @@ def attack_detection(
     
         df.loc[len(df.index)] = [output, output_bit, output_blur,output_adv, output_adv_bit, output_adv_blur]
         
-        if i % 512 == 0:
+        if i % 64 == 0:
             Path("results/images/" + dataset_name + "/" + sys.argv[2] + "/" + attack_name + "/").mkdir(
                 parents=True, exist_ok=True
             )
@@ -186,29 +192,37 @@ def defences(config):
     data_path = config.data_path
     batch_size = config.batch_size
 
-    stage1_path = os.path.join(dirparent, "stage1/stage1_" + dataset_name + ".pt")
+    stage1_path = os.path.join(dirparent, "stage1/stage1_" + sys.argv[3] +"_"+ dataset_name + ".pt")
     if sys.argv[2] == "none":
-        stage2_path = os.path.join(dirparent, "stage2/stage2_" + dataset_name + "_" + "abrupt" + ".pt")
+        stage2_path = os.path.join(dirparent, "stage2/stage2_" + sys.argv[3] +"_" + dataset_name + "_" + "abrupt" + ".pt")
     else:
-        stage2_path = os.path.join(dirparent, "stage2/stage2_" + dataset_name + "_" + sys.argv[2] + ".pt")
+        stage2_path = os.path.join(dirparent, "stage2/stage2_" + sys.argv[3] +"_" + dataset_name + "_" + sys.argv[2] + ".pt")
 
     print("CUDA Available: ", torch.cuda.is_available())
     device = torch.device("cuda" if (torch.cuda.is_available()) else "cpu")
     stage1_model = stage1().to(device)
-    stage1_model.load_state_dict(torch.load(stage1_path))
+    if torch.cuda.is_available():
+        stage1_model.load_state_dict(torch.load(stage1_path))
+    else:
+        stage1_model.load_state_dict(torch.load(stage1_path,map_location=torch.device('cpu')))
     stage1_model.eval()
+
     stage2_model = stage2().to(device)
-    stage2_model.load_state_dict(torch.load(stage2_path))
+    if torch.cuda.is_available():
+        stage2_model.load_state_dict(torch.load(stage2_path))
+    else:
+        stage2_model.load_state_dict(torch.load(stage2_path,map_location=torch.device('cpu')))
     stage2_model.eval()
 
     # root_dir = "../udacity-data"
     # attacks = ("FGSM", "Optimization", "Optimization Universal", "AdvGAN", "AdvGAN Universal")
 
     print("Loading testing data...")
-    X = np.load(dirparent + "/" + data_path + "X_train.npy")
-    Y = pd.read_csv(dirparent + "/" + data_path + "/Y_train_attack_" + sys.argv[2] + ".csv")
+    X = np.load(dirparent + "/" + data_path + "X_all.npy")
+    Y = pd.read_csv(dirparent + "/" + data_path + "/Y_all_attack_" + sys.argv[2] + ".csv")
     # full_dataset = stage2_data(X, Y)
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=56)
+    X_train, X_rem, Y_train, Y_rem = train_test_split(X, Y, test_size=0.3, random_state=56)
+    X_valid, X_test, Y_valid, Y_test  = train_test_split(X_rem, Y_rem, test_size=0.5, random_state=56)
     # train_dataset = stage2_data(X_train, Y_train)
     test_dataset = stage2_data(X_test, Y_test)
 
@@ -218,7 +232,7 @@ def defences(config):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     attack_names = ["fgsm", "opt", "OptU", "advGAN", "advGANU"]
-    attack_names = ["opt", "OptU", "advGAN", "advGANU"]
+    # attack_names = ["advGANU"]
     for i in range(len(attack_names)):
         print("[+] Attacking using", attack_names[i])
         df = attack_detection(
@@ -234,13 +248,14 @@ def defences(config):
         df["score_blur"] = abs(2 * (df["output"] - df["output_blur"]))
         df["max_score"] = df[["score_bit","score_blur"]].max(axis=1)
         
-        df["score_adv_bit"] = abs(2 * (df["output"] - df["output_adv_bit"]))
-        df["score_adv_blur"] = abs(2 * (df["output"] - df["output_adv_blur"]))
+        df["score_adv_bit"] = abs(2 * (df["output_adv"] - df["output_adv_bit"]))
+        df["score_adv_blur"] = abs(2 * (df["output_adv"] - df["output_adv_blur"]))
         df["max_score_adv"] = df[["score_adv_bit","score_adv_blur"]].max(axis=1)
+        df.to_csv("./results/score_" + dataset_name + "_" + sys.argv[2] + "_" + attack_names[i] + ".csv")
         
         df_detection = pd.DataFrame(columns=["orig_detected_bit", "adv_detected_bit", "orig_detected_blur", "adv_detected_blur","orig_detected_both", "adv_detected_both"])
         
-        for threshold in [0.01, 0.5, 1.0, 1.5, 1.99]:
+        for threshold in [0.01, 0.25, 0.5, 0.75, 1.0, 1.5, 1.99]:
             df_detection.loc[threshold, "orig_detected_bit"] = (df["score_bit"] > threshold).sum()
             df_detection.loc[threshold, "orig_detected_blur"] = (df["score_blur"] > threshold).sum()
             df_detection.loc[threshold, "orig_detected_both"] = (df["max_score"] > threshold).sum()

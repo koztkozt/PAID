@@ -6,6 +6,7 @@ from torchvision import models
 import math
 
 # comma_large_dropout
+# https://github.com/udacity/self-driving-car/blob/master/steering-models/community-models/rambo/train.py
 class stage1(nn.Module):
     def __init__(self):
         super(stage1, self).__init__()
@@ -35,9 +36,3 @@ class stage1(nn.Module):
         out = self.layer5(out)
         out = self.layer6(out)
         return out
-
-
-def weight_init(m):
-    if isinstance(m, nn.Conv2d):
-        n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-        m.weight.data.normal_(0, math.sqrt(2.0 / n))

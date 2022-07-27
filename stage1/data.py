@@ -21,4 +21,5 @@ class stage1_data(Dataset):
     def __getitem__(self, idx):
         img = self.x_train[idx]
         angle = self.y_train["angle_convert_org"].iloc[idx]
-        return img, angle
+        speed = self.y_train["speed"].iloc[idx]
+        return img, angle, speed
