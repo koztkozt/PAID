@@ -2,7 +2,7 @@
 
 ## Clone Repo
 ```
-! git clone https://github.com/koztkozt/RAIDS2
+git clone https://github.com/koztkozt/RAIDS2
 ```
 ## For AWS SageMaker Lab
 ``` 
