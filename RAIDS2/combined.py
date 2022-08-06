@@ -32,10 +32,9 @@ from attacks.attack_test import (
 )
 from scipy import ndimage
 from stage1.model import stage1
-from stage1a.model import stage1a
 from stage2.model import stage2
-from stage2a.model import stage2a
 from data import combined_data
+import datetime
 
 def reduce_bit(image, bit_size):
     image_int = np.rint(image * (math.pow(2, bit_size) - 1))
@@ -73,7 +72,6 @@ def stage2_pred(device, stage2, pred, pred_bit, pred_blur, sample):
     return torch.sigmoid(output.detach()).item(), torch.sigmoid(output_bit.detach()).item(),torch.sigmoid(output_blur.detach()).item()
 
 def feature_squeeze(stage1, stage2, config, sample, image, pred, attack_name):
-
     squeeze_image_bit = reduce_bit(image, 4)
     squeeze_image_bit = squeeze_image_bit.type(torch.FloatTensor)
     squeeze_image_bit = squeeze_image_bit.to(device)
@@ -137,29 +135,22 @@ if __name__ == "__main__":
         stage2_path = os.path.join(dirparent, "stage2/stage2_" + sys.argv[3] + "_" + dataset_name + "_" + "abrupt" + ".pt")
     else:
         stage2_path = os.path.join(dirparent, "stage2/stage2_" + sys.argv[3] + "_" + dataset_name + "_" + sys.argv[2] + ".pt")
-    stage2a_path = os.path.join(dirname, "stage2a/stage2a_" + sys.argv[3] +"_"+ dataset_name + ".pt")
     
     print("CUDA Available: ", torch.cuda.is_available())
     device = torch.device("cuda" if (torch.cuda.is_available()) else "cpu")
         
     stage1_model = stage1().to(device)
     stage2_model = stage2().to(device)
-    stage1a_model = stage1a().to(device)
-    stage2a_model = stage2a().to(device)
     
     if torch.cuda.is_available():
         stage1_model.load_state_dict(torch.load(stage1_path))
         stage2_model.load_state_dict(torch.load(stage2_path))
-        stage2a_model.load_state_dict(torch.load(stage2a_path))
     else:
         stage1_model.load_state_dict(torch.load(stage1_path,map_location=torch.device('cpu')))
         stage2_model.load_state_dict(torch.load(stage2_path,map_location=torch.device('cpu')))
-        stage2a_model.load_state_dict(torch.load(stage2a_path,map_location=torch.device('cpu')))
 
     stage1_model.eval()
     stage2_model.eval()
-    stage1a_model.eval()
-    stage2a_model.eval()
     
     print("Loading testing data...")
     X = np.load(dirparent + "/" + data_path + "X_all.npy")
@@ -179,6 +170,12 @@ if __name__ == "__main__":
     inter = 0.0
     print("attacking RAIDS using ", attack_name) 
     print("Length of dataloader :", len(test_generator))
+    
+    # Measure response time
+    total_time = datetime.timedelta()
+    max_time = datetime.timedelta()
+    
+    
     for i, sample in enumerate(test_generator):
         if i / len(test_generator) > inter:
             print(f"attacks completed: {(inter):.0%}")
@@ -198,8 +195,8 @@ if __name__ == "__main__":
         # stage1
         if not target:
             # print("not attack")
-            predicted_angle = stage1_model(img)
             image = sample[0]
+            image = image.type(torch.FloatTensor)
         else:
             # print("attack")
             plot_fig = False
@@ -244,9 +241,13 @@ if __name__ == "__main__":
                     stage1_model, sample[0], device, noise, image_size, plot_fig
                 )
             
-            predicted_angle = pred_adv
             image = torch.from_numpy(perturbed_image)
+            
+        # start timing here
+        time_start = datetime.datetime.now()
+        predicted_angle = stage1_model(image.to(device))
         
+        # print(predicted_angle)
         if sys.argv[5] == "RAIDS2":
             # stage1a
             stage1a_intrusion = feature_squeeze(stage1_model, stage2_model, config, sample, image, predicted_angle, attack_name)
@@ -260,6 +261,12 @@ if __name__ == "__main__":
         elif sys.argv[5] == "RAIDS":
             final_vars = torch.abs(torch.sub(angle.unsqueeze(-1), predicted_angle))
             output = stage2_model(final_vars)
+        
+        time_end = datetime.datetime.now()
+        time_elapsed = time_end - time_start
+        if max_time < time_elapsed:
+            max_time = time_elapsed
+        total_time = total_time + time_elapsed
         
         loss = criterion(output, target.unsqueeze(-1))
         running_vloss += loss.item()
@@ -290,6 +297,9 @@ if __name__ == "__main__":
     df["TP_Rate"] = df["TP"] / df["Total_Actual_Pos"]  # Recall
     df["FP_Rate"] = df["FP"] / df["Total_Actual_Neg"]
     df["TN_Rate"] = df["TN"] / df["Total_Actual_Neg"]
-    df["FN_Rate"] = df["FN"] / df["Total_Actual_Pos"]        
+    df["FN_Rate"] = df["FN"] / df["Total_Actual_Pos"]
+    df["max_time"] = max_time
+    df["total_time"] = total_time
+    df["avg_time"] = total_time / len(test_generator)
     print(df.tail())
     df.to_csv("accurracy_" + sys.argv[3] + "_" + dataset_name + "_" + sys.argv[4] + "_" + sys.argv[5] + ".csv")
